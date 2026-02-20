@@ -171,9 +171,6 @@ def toggle_task(tasks):
 
 
 def show_done_tasks(tasks):
-    if not tasks:
-        print("No tasks")
-        return
     done = filter_tasks(tasks, True)
     print_tasks_subset(done)
 
