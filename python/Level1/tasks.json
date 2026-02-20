@@ -6,5 +6,9 @@
   {
     "text": "troll",
     "done": true
+  },
+  {
+    "text": "rap",
+    "done": false
   }
 ]

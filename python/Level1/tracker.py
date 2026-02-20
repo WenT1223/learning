@@ -57,19 +57,30 @@ def validate_input(the_input, len_tasks):
 
 
 def filter_tasks(tasks, looking_for):
-    x = []
+    temp = []
     for index, task in enumerate(tasks):
         if task["done"] == looking_for:
-            x.append((index, task))
-    return x
+            temp.append((index, task))
+    return temp
 
-# TODO: takes index, task (dict) and prints correct output
-# def print_tasks_subset(items):
+
+def print_tasks_subset(items):
+    if items[1]:
+        string = "done"
+        mark = "[X]"
+    else:
+        string = "undone"
+        mark = "[ ]"
+    if not items:
+        print(f"You have no {string} tasks!")
+    else:
+        for index, task in items:
+            print(f"{index+1}. [X] {task['text']}")
 
 
 def menu():
     options = [add_task, print_tasks, mark_done, delete_task,
-               toggle_task, show_done_tasks, show_undone_tasks, search_tasks]
+               toggle_task, show_done_tasks, ]
     while True:
         tasks = load_tasks()
         option_pick = input("WHAT TO DO\n"
@@ -157,16 +168,15 @@ def toggle_task(tasks):
     print_tasks(tasks)
 
 # TODO: make use of print_tasks_subset(), shorten to only filter and print
-# def show_done_tasks(tasks):
-#     if not tasks:
-#         print("No tasks")
-#         return
-#     done = filter_tasks(tasks, True)
-#     if not done:
-#         print("No done tasks")
-#     else:
-#         for index, task in done:
-#             print(f"{index+1}. [X] {task['text']}")
+
+
+def show_done_tasks(tasks):
+    if not tasks:
+        print("No tasks")
+        return
+    done = filter_tasks(tasks, True)
+    print_tasks_subset(done, "done")
+
 
 # TODO: same as above
 # def show_undone_tasks(tasks):
