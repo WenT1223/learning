@@ -175,7 +175,7 @@ def show_done_tasks(tasks):
         print("No tasks")
         return
     done = filter_tasks(tasks, True)
-    print_tasks_subset(done, "done")
+    print_tasks_subset(done)
 
 
 # TODO: same as above
