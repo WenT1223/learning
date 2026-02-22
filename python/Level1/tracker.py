@@ -34,9 +34,12 @@ def tasks_txt_to_json():
 def load_tasks():
     if not TASKS_FILE_JSON.exists() or TASKS_FILE_JSON.stat().st_size == 0:
         return []
-    else:
+    try:
         with open(TASKS_FILE_JSON, "r", encoding="utf-8") as f:
             return json.load(f)
+    except json.JSONDecodeError:
+        print("tasks.json is corrupted (invalid JSON).")
+        return []
 
 
 def save_tasks(tasks):
@@ -56,25 +59,30 @@ def validate_input(the_input, len_tasks):
         return None
 
 
-def filter_tasks(tasks, looking_for):
-    temp = []
-    for index, task in enumerate(tasks):
-        if task["done"] == looking_for:
-            temp.append((index, task))
-        elif task["text"] == looking_for:
-            temp.append((index, task))
-    return temp
+def filter_tasks_by_done(tasks, done_value: bool):
+    return [(i, task) for i, task in enumerate(tasks) if task["done"] == done_value]
+
+
+def search_tasks_by_text(tasks, query: str):
+    query = query.strip().lower()
+    return [(i, task) for i, task in enumerate(tasks) if query in task["text"].lower()]
 
 
 def print_tasks_subset(items):
-    if items[0][1]["done"]:
-        mark = "[X]"
-    elif not items[0][1]["done"]:
-        mark = "[ ]"
-    else:
-        mark = None
+    if not items:
+        return
     for index, task in items:
+        mark = "[X]" if task["done"] else "[ ]"
         print(f"{index+1}. {mark} {task['text']}")
+
+
+def pick_task_index(tasks, prompt: str):
+    if not tasks:
+        print("No tasks")
+        return None
+    print_tasks(tasks)
+    user_input = input(prompt)
+    return validate_input(user_input, len(tasks))
 
 
 def menu():
@@ -114,21 +122,15 @@ def add_task(tasks):
 
 
 def print_tasks(tasks):
-    if not tasks:
+    items = list(enumerate(tasks))  # (index, task)
+    if not items:
         print("No tasks")
         return
-    for index, value in enumerate(tasks):
-        done = "[X]" if value["done"] else "[ ]"
-        print(f"{index+1}. {done} {value['text']}")
+    print_tasks_subset(items)
 
 
 def mark_done(tasks):
-    if not tasks:
-        print("No tasks")
-        return
-    print_tasks(tasks)
-    mark_line = input("Mark done: ")
-    index = validate_input(mark_line, len(tasks))
+    index = pick_task_index(tasks, "Delete: ")
     if index is None:
         return
     elif tasks[index]["done"]:
@@ -140,12 +142,7 @@ def mark_done(tasks):
 
 
 def delete_task(tasks):
-    if not tasks:
-        print("No tasks")
-        return
-    print_tasks(tasks)
-    mark_line = input("Delete: ")
-    index = validate_input(mark_line, len(tasks))
+    index = pick_task_index(tasks, "Delete: ")
     if index is None:
         return
     tasks.pop(index)
@@ -154,12 +151,7 @@ def delete_task(tasks):
 
 
 def toggle_task(tasks):
-    if not tasks:
-        print("No tasks")
-        return
-    print_tasks(tasks)
-    mark_line = input("Toggle done/undone: ")
-    index = validate_input(mark_line, len(tasks))
+    index = pick_task_index(tasks, "Delete: ")
     if index is None:
         return
     tasks[index]["done"] = not tasks[index]["done"]
@@ -168,29 +160,28 @@ def toggle_task(tasks):
 
 
 def show_done_tasks(tasks):
-    done = filter_tasks(tasks, True)
+    done = filter_tasks_by_done(tasks, True)
     if not done:
         print("You have no done tasks!")
-    else:
-        print_tasks_subset(done)
+        return
+    print_tasks(done)
 
 
 def show_undone_tasks(tasks):
-    undone = filter_tasks(tasks, False)
+    undone = filter_tasks_by_done(tasks, False)
     if not undone:
         print("You have no undone tasks!")
-    else:
-        print_tasks_subset(undone)
-
+        return
+    print_tasks(undone)
 
 
 def search_tasks(tasks):
-    looking_for_input = input("Find task: ").lower()
-    looking_for_filter = filter_tasks(tasks, looking_for_input)
-    if not looking_for_filter:
-        print("This task does not exist!")
-    else:
-        print_tasks_subset(looking_for_filter)
+    query = input("Find task: ")
+    results = search_tasks_by_text(tasks, query)
+    if not results:
+        print("No matching tasks.")
+        return
+    print_tasks(results)
 
 
 if TASKS_FILE_TXT.exists() and (not TASKS_FILE_JSON.exists() or TASKS_FILE_JSON.stat().st_size == 0):
