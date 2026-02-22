@@ -61,26 +61,25 @@ def filter_tasks(tasks, looking_for):
     for index, task in enumerate(tasks):
         if task["done"] == looking_for:
             temp.append((index, task))
+        elif task["text"] == looking_for:
+            temp.append((index, task))
     return temp
 
 
 def print_tasks_subset(items):
-    if items[1]:
-        string = "done"
+    if items[0][1]["done"]:
         mark = "[X]"
-    else:
-        string = "undone"
+    elif not items[0][1]["done"]:
         mark = "[ ]"
-    if not items:
-        print(f"You have no {string} tasks!")
     else:
-        for index, task in items:
-            print(f"{index+1}. [X] {task['text']}")
+        mark = None
+    for index, task in items:
+        print(f"{index+1}. {mark} {task['text']}")
 
 
 def menu():
     options = [add_task, print_tasks, mark_done, delete_task,
-               toggle_task, show_done_tasks, ]
+               toggle_task, show_done_tasks, show_undone_tasks, search_tasks]
     while True:
         tasks = load_tasks()
         option_pick = input("WHAT TO DO\n"
@@ -167,29 +166,31 @@ def toggle_task(tasks):
     save_tasks(tasks)
     print_tasks(tasks)
 
-# TODO: make use of print_tasks_subset(), shorten to only filter and print
-
 
 def show_done_tasks(tasks):
     done = filter_tasks(tasks, True)
-    print_tasks_subset(done)
+    if not done:
+        print("You have no done tasks!")
+    else:
+        print_tasks_subset(done)
 
 
-# TODO: same as above
-# def show_undone_tasks(tasks):
-#     if not tasks:
-#         print("No tasks")
-#         return
-#     undone = filter_tasks(tasks, False)
-#     if not undone:
-#         print("No undone tasks")
-#     else:
-#         for index, task in undone:
-#             print(f"{index+1}. [ ] {task['text']}")
+def show_undone_tasks(tasks):
+    undone = filter_tasks(tasks, False)
+    if not undone:
+        print("You have no undone tasks!")
+    else:
+        print_tasks_subset(undone)
 
-# TODO: complete, use print_tasks_subset()
-# def search_tasks(tasks):
-#     return
+
+
+def search_tasks(tasks):
+    looking_for_input = input("Find task: ").lower()
+    looking_for_filter = filter_tasks(tasks, looking_for_input)
+    if not looking_for_filter:
+        print("This task does not exist!")
+    else:
+        print_tasks_subset(looking_for_filter)
 
 
 if TASKS_FILE_TXT.exists() and (not TASKS_FILE_JSON.exists() or TASKS_FILE_JSON.stat().st_size == 0):
