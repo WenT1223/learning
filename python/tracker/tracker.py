@@ -31,60 +31,6 @@ def tasks_txt_to_json():
     print("Migration complete.")
 
 
-def load_tasks():
-    if not TASKS_FILE_JSON.exists() or TASKS_FILE_JSON.stat().st_size == 0:
-        return []
-    try:
-        with open(TASKS_FILE_JSON, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        print("tasks.json is corrupted (invalid JSON).")
-        return []
-
-
-def save_tasks(tasks):
-    with open(TASKS_FILE_JSON, "w", encoding="utf-8") as f:
-        json.dump(tasks, f, indent=2)
-
-
-def validate_input(the_input, len_tasks):
-    if the_input.isdigit():
-        the_input = int(the_input) - 1
-        if not (0 <= the_input < len_tasks):
-            print("Wrong index!\n")
-            return None
-        return the_input
-    else:
-        print("Wrong input!\n")
-        return None
-
-
-def filter_tasks_by_done(tasks, done_value: bool):
-    return [(i, task) for i, task in enumerate(tasks) if task["done"] == done_value]
-
-
-def search_tasks_by_text(tasks, query: str):
-    query = query.strip().lower()
-    return [(i, task) for i, task in enumerate(tasks) if query in task["text"].lower()]
-
-
-def print_tasks_subset(items):
-    if not items:
-        return
-    for index, task in items:
-        mark = "[X]" if task["done"] else "[ ]"
-        print(f"{index+1}. {mark} {task['text']}")
-
-
-def pick_task_index(tasks, prompt: str):
-    if not tasks:
-        print("No tasks")
-        return None
-    print_tasks(tasks)
-    user_input = input(prompt)
-    return validate_input(user_input, len(tasks))
-
-
 def menu():
     options = [add_task, print_tasks, mark_done, delete_task,
                toggle_task, show_done_tasks, show_undone_tasks, search_tasks]
@@ -101,12 +47,74 @@ def menu():
                             "8. Search tasks\n"
                             "9. Exit\n\n"
                             "Choose: ")
-        if option_pick == "9":
-            break
-        elif option_pick.isdigit() and 1 <= int(option_pick) <= len(options):
-            options[int(option_pick)-1](tasks)
-        else:
+        try:
+            picked = int(option_pick) - 1
+            if picked < 1:
+                print(
+                    "\nWrong input!\nCorrect form: 1 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9\n")
+                continue
+            options[picked](tasks)
+        except (ValueError, IndexError):
             print("\nWrong input!\nCorrect form: 1 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9\n")
+
+
+def load_tasks():
+    if not TASKS_FILE_JSON.exists() or TASKS_FILE_JSON.stat().st_size == 0:
+        return []
+    try:
+        with open(TASKS_FILE_JSON, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        print("tasks.json is corrupted (invalid JSON).")
+        return []
+
+
+def save_tasks(tasks):
+    with open(TASKS_FILE_JSON, "w", encoding="utf-8") as f:
+        json.dump(tasks, f, indent=2)
+
+
+def pick_task_index(tasks, prompt: str):
+    if not tasks:
+        print("No tasks")
+        return None
+    print_tasks(tasks)
+    user_input_index = input(prompt)
+    return validate_index_of_input(user_input_index, len(tasks))
+
+
+def validate_index_of_input(user_input_index, len_tasks):
+    try:
+        user_input_index = int(user_input_index) - 1
+        if not (0 <= user_input_index < len_tasks):
+            print("Wrong index!\n")
+            return None
+        return user_input_index
+    except ValueError:
+        print("Wrong input!\n")
+        return None
+
+
+def filter_tasks_by_done(tasks, done_value: bool):
+    return [(i, task) for i, task in enumerate(tasks) if task["done"] == done_value]
+
+
+def filter_tasks_by_text(tasks, query: str):
+    query = query.strip().lower()
+    return [(i, task) for i, task in enumerate(tasks) if query in task["text"].lower()]
+
+
+def print_tasks(tasks):
+    enumerated_tasks = list(enumerate(tasks))  # (index, task)
+    if not enumerated_tasks:
+        print("No tasks")
+        return
+    print_tasks_subset(enumerated_tasks)
+
+
+def print_tasks_subset(enumerated_tasks):
+    print("\n".join(f"{i+1}. [X] {task['text']}" if task['done']
+          else f"{i+1}. [ ] {task['text']}" for i, task in enumerated_tasks))
 
 
 def add_task(tasks):
@@ -119,18 +127,11 @@ def add_task(tasks):
         "done": False
     })
     save_tasks(tasks)
-
-
-def print_tasks(tasks):
-    items = list(enumerate(tasks))  # (index, task)
-    if not items:
-        print("No tasks")
-        return
-    print_tasks_subset(items)
+    print_tasks(tasks)
 
 
 def mark_done(tasks):
-    index = pick_task_index(tasks, "Delete: ")
+    index = pick_task_index(tasks, "Mark done: ")
     if index is None:
         return
     elif tasks[index]["done"]:
@@ -151,7 +152,7 @@ def delete_task(tasks):
 
 
 def toggle_task(tasks):
-    index = pick_task_index(tasks, "Delete: ")
+    index = pick_task_index(tasks, "Toggle done/undone: ")
     if index is None:
         return
     tasks[index]["done"] = not tasks[index]["done"]
@@ -164,7 +165,7 @@ def show_done_tasks(tasks):
     if not done:
         print("You have no done tasks!")
         return
-    print_tasks(done)
+    print_tasks_subset(done)
 
 
 def show_undone_tasks(tasks):
@@ -172,16 +173,16 @@ def show_undone_tasks(tasks):
     if not undone:
         print("You have no undone tasks!")
         return
-    print_tasks(undone)
+    print_tasks_subset(undone)
 
 
 def search_tasks(tasks):
     query = input("Find task: ")
-    results = search_tasks_by_text(tasks, query)
+    results = filter_tasks_by_text(tasks, query)
     if not results:
         print("No matching tasks.")
         return
-    print_tasks(results)
+    print_tasks_subset(results)
 
 
 if TASKS_FILE_TXT.exists() and (not TASKS_FILE_JSON.exists() or TASKS_FILE_JSON.stat().st_size == 0):
