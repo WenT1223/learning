@@ -48,13 +48,15 @@ def menu():
                             "9. Exit\n\n"
                             "Choose: ")
         try:
-            picked = int(option_pick) - 1
-            if picked < 1:
+            picked = int(option_pick)
+            if len(options)+1 < picked or picked < 1:
                 print(
                     "\nWrong input!\nCorrect form: 1 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9\n")
                 continue
-            options[picked](tasks)
-        except (ValueError, IndexError):
+            elif picked == 9:
+                break
+            options[picked-1](tasks)
+        except ValueError:
             print("\nWrong input!\nCorrect form: 1 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9\n")
 
 
@@ -105,7 +107,7 @@ def filter_tasks_by_text(tasks, query: str):
 
 
 def print_tasks(tasks):
-    enumerated_tasks = list(enumerate(tasks))  # (index, task)
+    enumerated_tasks = enumerate(tasks)
     if not enumerated_tasks:
         print("No tasks")
         return
